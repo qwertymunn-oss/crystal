@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>慕白工作室</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;600&family=DM+Serif+Display:ital@0;1&family=Noto+Sans+SC:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a1412;
+    --paper: #f7f3ee;
+    --stone: #8b7d74;
+    --crystal: #a8c4c0;
+    --crystal-deep: #5a8f8a;
+    --gold: #c9a96e;
+    --rose: #d4a0a0;
+    --sage: #9aaa8e;
+    --warn: #c47a5a;
+    --surface: #ede8e2;
+    --card: #f2ede7;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'Noto Sans SC', sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grain texture overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 999;
+    opacity: 0.4;
+  }
+
+  .app {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 28px 20px 60px;
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    margin-bottom: 36px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid rgba(139,125,116,0.2);
+    position: relative;
+  }
+  .header-subtitle {
+    font-family: 'DM Serif Display', serif;
+    font-style: italic;
+    font-size: 12px;
+    letter-spacing: 3px;
+    color: var(--stone);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .header-title {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 28px;
+    font-weight: 300;
+    letter-spacing: 8px;
+    color: var(--ink);
+  }
+  .header-date {
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--stone);
+    letter-spacing: 1px;
+  }
+
+  /* Clock-in button */
+  .checkin-zone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 32px;
+  }
+
+  .checkin-btn {
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    border: 2px solid var(--crystal-deep);
+    background: var(--card);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 4px 24px rgba(90,143,138,0.12), inset 0 1px 0 rgba(255,255,255,0.6);
+    position: relative;
+    overflow: hidden;
+  }
+  .checkin-btn::before {
+    content: '';
+    position: absolute;
+    inset: 6px;
+    border-radius: 50%;
+    border: 1px dashed rgba(90,143,138,0.3);
+    transition: all 0.3s;
+  }
+  .checkin-btn:active {
+    transform: scale(0.94);
+    box-shadow: 0 2px 12px rgba(90,143,138,0.2);
+  }
+  .checkin-btn.working {
+    background: var(--crystal-deep);
+    border-color: var(--crystal-deep);
+    box-shadow: 0 4px 32px rgba(90,143,138,0.35), inset 0 1px 0 rgba(255,255,255,0.2);
+    animation: pulse-ring 2.5s ease-in-out infinite;
+  }
+  .checkin-btn.working::before {
+    border-color: rgba(255,255,255,0.25);
+  }
+  @keyframes pulse-ring {
+    0%, 100% { box-shadow: 0 4px 32px rgba(90,143,138,0.35), 0 0 0 0 rgba(90,143,138,0.3); }
+    50% { box-shadow: 0 4px 32px rgba(90,143,138,0.35), 0 0 0 16px rgba(90,143,138,0); }
+  }
+  .btn-icon { font-size: 32px; transition: all 0.3s; }
+  .btn-label {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 13px;
+    font-weight: 400;
+    letter-spacing: 3px;
+    color: var(--crystal-deep);
+    transition: color 0.3s;
+  }
+  .checkin-btn.working .btn-label { color: rgba(255,255,255,0.9); }
+
+  .checkin-status {
+    margin-top: 16px;
+    font-size: 12px;
+    color: var(--stone);
+    letter-spacing: 1px;
+    height: 20px;
+    text-align: center;
+  }
+  .checkin-status.active { color: var(--crystal-deep); font-weight: 400; }
+
+  /* Live timer */
+  .live-timer {
+    display: none;
+    font-family: 'DM Serif Display', serif;
+    font-size: 42px;
+    letter-spacing: 2px;
+    color: var(--crystal-deep);
+    text-align: center;
+    margin: 8px 0 4px;
+    animation: fadeIn 0.5s ease;
+  }
+  .live-timer.visible { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* Stats row */
+  .stats-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .stat-card {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 16px 12px;
+    text-align: center;
+    border: 1px solid rgba(139,125,116,0.12);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  }
+  .stat-label {
+    font-size: 10px;
+    color: var(--stone);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .stat-value {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    color: var(--ink);
+  }
+  .stat-value.gold { color: var(--gold); }
+  .stat-value.crystal { color: var(--crystal-deep); }
+  .stat-value.warn { color: var(--warn); }
+
+  /* Progress bar */
+  .progress-section {
+    margin-bottom: 24px;
+  }
+  .progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .progress-label {
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--stone);
+    text-transform: uppercase;
+  }
+  .progress-pct {
+    font-family: 'DM Serif Display', serif;
+    font-size: 14px;
+    color: var(--crystal-deep);
+  }
+  .progress-track {
+    height: 6px;
+    background: var(--surface);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--crystal) 0%, var(--crystal-deep) 100%);
+    border-radius: 3px;
+    transition: width 0.6s cubic-bezier(0.34, 1.2, 0.64, 1);
+    width: 0%;
+  }
+  .progress-fill.over { background: linear-gradient(90deg, var(--gold) 0%, var(--warn) 100%); }
+
+  /* Input sections */
+  .section {
+    background: var(--card);
+    border-radius: 20px;
+    padding: 20px;
+    margin-bottom: 16px;
+    border: 1px solid rgba(139,125,116,0.1);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+  }
+  .section-title {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    color: var(--stone);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-title span { font-size: 16px; }
+
+  .input-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .input-group:last-child { margin-bottom: 0; }
+
+  .input-label {
+    font-size: 12px;
+    color: var(--stone);
+    letter-spacing: 1px;
+    white-space: nowrap;
+    min-width: 64px;
+  }
+
+  input[type="number"], input[type="text"], textarea {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid rgba(139,125,116,0.15);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-family: 'Noto Sans SC', sans-serif;
+    font-size: 14px;
+    color: var(--ink);
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    -webkit-appearance: none;
+  }
+  input:focus, textarea:focus {
+    border-color: var(--crystal-deep);
+    box-shadow: 0 0 0 3px rgba(90,143,138,0.1);
+  }
+  textarea {
+    resize: none;
+    height: 80px;
+    line-height: 1.6;
+  }
+
+  .profit-display {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(135deg, rgba(201,169,110,0.08) 0%, rgba(201,169,110,0.15) 100%);
+    border: 1px solid rgba(201,169,110,0.3);
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin-top: 12px;
+  }
+  .profit-display-label { font-size: 11px; color: var(--gold); letter-spacing: 2px; text-transform: uppercase; }
+  .profit-display-value { font-family: 'DM Serif Display', serif; font-size: 26px; color: var(--gold); }
+
+  /* Rate editor */
+  .rate-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--stone);
+    margin-top: 8px;
+  }
+  .rate-row input { max-width: 60px; text-align: center; }
+
+  /* Save button */
+  .save-btn {
+    width: 100%;
+    padding: 16px;
+    background: var(--ink);
+    color: var(--paper);
+    border: none;
+    border-radius: 14px;
+    font-family: 'Noto Serif SC', serif;
+    font-size: 14px;
+    letter-spacing: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 8px;
+    box-shadow: 0 4px 16px rgba(26,20,18,0.2);
+  }
+  .save-btn:active { transform: scale(0.98); opacity: 0.85; }
+
+  /* History */
+  .history-section { margin-top: 28px; }
+  .history-title {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    color: var(--stone);
+    margin-bottom: 14px;
+    text-align: center;
+    text-transform: uppercase;
+  }
+  .history-item {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 16px 18px;
+    margin-bottom: 10px;
+    border: 1px solid rgba(139,125,116,0.1);
+    box-shadow: 0 1px 6px rgba(0,0,0,0.03);
+    animation: slideUp 0.3s ease;
+  }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+  .history-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+  }
+  .history-date {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .history-badges {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .badge {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    letter-spacing: 1px;
+  }
+  .badge-time { background: rgba(90,143,138,0.12); color: var(--crystal-deep); }
+  .badge-profit { background: rgba(201,169,110,0.15); color: var(--gold); }
+  .badge-hit { background: rgba(154,170,142,0.2); color: var(--sage); }
+  .badge-miss { background: rgba(196,122,90,0.15); color: var(--warn); }
+  .history-notes {
+    font-size: 12px;
+    color: var(--stone);
+    line-height: 1.7;
+    border-top: 1px solid rgba(139,125,116,0.1);
+    padding-top: 8px;
+    white-space: pre-wrap;
+  }
+  .history-metrics {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 8px;
+  }
+  .history-metric { font-size: 11px; color: var(--stone); }
+  .history-metric b { color: var(--ink); font-weight: 400; }
+
+  /* Empty state */
+  .empty {
+    text-align: center;
+    padding: 32px 0;
+    color: var(--stone);
+    font-size: 13px;
+    letter-spacing: 2px;
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--ink);
+    color: var(--paper);
+    padding: 12px 24px;
+    border-radius: 24px;
+    font-size: 13px;
+    letter-spacing: 2px;
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    pointer-events: none;
+    z-index: 1000;
+    white-space: nowrap;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* Weekly summary */
+  .weekly-bar {
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    height: 60px;
+    margin-top: 12px;
+  }
+  .week-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .week-bar-fill {
+    width: 100%;
+    border-radius: 4px 4px 0 0;
+    background: var(--crystal);
+    transition: height 0.6s cubic-bezier(0.34, 1.2, 0.64, 1);
+    min-height: 2px;
+  }
+  .week-bar-fill.today { background: var(--crystal-deep); }
+  .week-day { font-size: 9px; color: var(--stone); letter-spacing: 1px; }
+
+  .divider {
+    height: 1px;
+    background: rgba(139,125,116,0.15);
+    margin: 28px 0;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-subtitle">Mubai Studio</div>
+    <div class="header-title">慕白工作室</div>
+    <div class="header-date" id="headerDate"></div>
+  </div>
+
+  <!-- Check-in button -->
+  <div class="checkin-zone">
+    <div class="live-timer" id="liveTimer">00:00:00</div>
+    <button class="checkin-btn" id="checkinBtn" onclick="toggleCheckin()">
+      <div class="btn-icon" id="btnIcon">🔮</div>
+      <div class="btn-label" id="btnLabel">开始工作</div>
+    </button>
+    <div class="checkin-status" id="checkinStatus">点击进入工作模式</div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-label">今日时长</div>
+      <div class="stat-value crystal" id="statHours">0h 0m</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">本周天数</div>
+      <div class="stat-value" id="statDays">0天</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">本周利润</div>
+      <div class="stat-value gold" id="statWeekProfit">¥0</div>
+    </div>
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-section">
+    <div class="progress-header">
+      <div class="progress-label">今日目标进度（8小时）</div>
+      <div class="progress-pct" id="progressPct">0%</div>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+  </div>
+
+  <!-- Revenue input -->
+  <div class="section">
+    <div class="section-title"><span>💰</span> 今日效益</div>
+    <div class="input-group">
+      <div class="input-label">销售额</div>
+      <input type="number" id="salesInput" placeholder="输入今日销售额（元）" oninput="calcProfit()">
+    </div>
+    <div class="rate-row">
+      利润率
+      <input type="number" id="profitRate" value="60" min="1" max="100" oninput="calcProfit()">
+      %
+    </div>
+    <div class="profit-display">
+      <div class="profit-display-label">今日净利润</div>
+      <div class="profit-display-value" id="profitDisplay">¥ —</div>
+    </div>
+  </div>
+
+  <!-- Notes -->
+  <div class="section">
+    <div class="section-title"><span>📝</span> 今天做了什么</div>
+    <textarea id="notesInput" placeholder="记录今天的工作内容，制作了什么、接了什么单、进了什么货……"></textarea>
+  </div>
+
+  <button class="save-btn" onclick="saveToday()">保存今日记录</button>
+
+  <div class="divider"></div>
+
+  <!-- Weekly chart -->
+  <div class="section">
+    <div class="section-title"><span>📊</span> 本周工作时长</div>
+    <div class="weekly-bar" id="weeklyBar"></div>
+  </div>
+
+  <!-- History -->
+  <div class="history-section">
+    <div class="history-title">过往记录</div>
+    <div id="historyList"></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const GOAL_HOURS = 8;
+const STORAGE_KEY = 'crystal_studio_v2';
+const STATE_KEY = 'crystal_studio_state';
+
+// --- State ---
+let state = {
+  isWorking: false,
+  startTime: null,
+  accumulatedMs: 0,
+};
+
+let records = [];
+let timerInterval = null;
+
+// --- Init ---
+function init() {
+  loadData();
+  updateHeaderDate();
+  restoreState();
+  renderHistory();
+  updateStats();
+  renderWeekly();
+  if (state.isWorking) startTimerLoop();
+}
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) records = JSON.parse(raw);
+  } catch(e) { records = []; }
+  try {
+    const s = localStorage.getItem(STATE_KEY);
+    if (s) state = JSON.parse(s);
+    if (state.startTime) state.startTime = new Date(state.startTime);
+  } catch(e) {}
+}
+
+function saveData() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+}
+
+function saveState() {
+  localStorage.setItem(STATE_KEY, JSON.stringify(state));
+}
+
+function restoreState() {
+  if (state.isWorking) {
+    const btn = document.getElementById('checkinBtn');
+    btn.classList.add('working');
+    document.getElementById('btnIcon').textContent = '⏸';
+    document.getElementById('btnLabel').style.color = 'rgba(255,255,255,0.9)';
+    document.getElementById('btnLabel').textContent = '下班打卡';
+    document.getElementById('liveTimer').classList.add('visible');
+    document.getElementById('checkinStatus').className = 'checkin-status active';
+  }
+}
+
+// --- Date ---
+function todayKey() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function updateHeaderDate() {
+  const d = new Date();
+  const days = ['日','一','二','三','四','五','六'];
+  document.getElementById('headerDate').textContent =
+    `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日  星期${days[d.getDay()]}`;
+}
+
+// --- Check-in ---
+function toggleCheckin() {
+  if (state.isWorking) {
+    // Clock out
+    const elapsed = Date.now() - new Date(state.startTime).getTime();
+    state.accumulatedMs += elapsed;
+    state.isWorking = false;
+    state.startTime = null;
+    saveState();
+    stopTimerLoop();
+
+    const btn = document.getElementById('checkinBtn');
+    btn.classList.remove('working');
+    document.getElementById('btnIcon').textContent = '🔮';
+    document.getElementById('btnLabel').style.color = '';
+    document.getElementById('btnLabel').textContent = '开始工作';
+    document.getElementById('liveTimer').classList.remove('visible');
+    document.getElementById('checkinStatus').className = 'checkin-status';
+    document.getElementById('checkinStatus').textContent = '已下班 · 记得保存今日记录';
+
+    updateProgress();
+    updateStats();
+    showToast('已下班 ✓');
+  } else {
+    // Clock in
+    state.isWorking = true;
+    state.startTime = new Date();
+    saveState();
+    startTimerLoop();
+
+    const btn = document.getElementById('checkinBtn');
+    btn.classList.add('working');
+    document.getElementById('btnIcon').textContent = '⏸';
+    document.getElementById('btnLabel').style.color = 'rgba(255,255,255,0.9)';
+    document.getElementById('btnLabel').textContent = '下班打卡';
+    document.getElementById('liveTimer').classList.add('visible');
+    document.getElementById('checkinStatus').className = 'checkin-status active';
+    document.getElementById('checkinStatus').textContent = '工作中……';
+
+    showToast('上班打卡成功 🔮');
+  }
+}
+
+function startTimerLoop() {
+  timerInterval = setInterval(() => {
+    const elapsed = state.accumulatedMs + (Date.now() - new Date(state.startTime).getTime());
+    document.getElementById('liveTimer').textContent = formatMs(elapsed);
+    updateProgress(elapsed);
+    updateTodayStatHours(elapsed);
+  }, 1000);
+}
+
+function stopTimerLoop() {
+  clearInterval(timerInterval);
+}
+
+function formatMs(ms) {
+  const s = Math.floor(ms / 1000);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+}
+
+function getCurrentMs() {
+  if (state.isWorking && state.startTime) {
+    return state.accumulatedMs + (Date.now() - new Date(state.startTime).getTime());
+  }
+  return state.accumulatedMs;
+}
+
+// --- Progress ---
+function updateProgress(ms) {
+  if (ms === undefined) ms = getCurrentMs();
+  const pct = Math.min((ms / (GOAL_HOURS * 3600000)) * 100, 100);
+  const fill = document.getElementById('progressFill');
+  fill.style.width = pct + '%';
+  fill.className = 'progress-fill' + (pct >= 100 ? ' over' : '');
+  document.getElementById('progressPct').textContent = Math.round(pct) + '%';
+}
+
+function updateTodayStatHours(ms) {
+  if (ms === undefined) ms = getCurrentMs();
+  const totalMin = Math.floor(ms / 60000);
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  document.getElementById('statHours').textContent = `${h}h ${m}m`;
+}
+
+// --- Profit calc ---
+function calcProfit() {
+  const sales = parseFloat(document.getElementById('salesInput').value) || 0;
+  const rate = parseFloat(document.getElementById('profitRate').value) || 60;
+  const profit = sales * (rate / 100);
+  document.getElementById('profitDisplay').textContent = sales > 0 ? `¥ ${profit.toFixed(0)}` : '¥ —';
+}
+
+// --- Save ---
+function saveToday() {
+  const key = todayKey();
+  const sales = parseFloat(document.getElementById('salesInput').value) || 0;
+  const rate = parseFloat(document.getElementById('profitRate').value) || 60;
+  const profit = sales * (rate / 100);
+  const notes = document.getElementById('notesInput').value.trim();
+  const ms = getCurrentMs();
+
+  // If no time logged
+  if (ms < 60000 && sales === 0 && !notes) {
+    showToast('请先打卡或填写内容');
+    return;
+  }
+
+  const existing = records.findIndex(r => r.date === key);
+  const record = {
+    date: key,
+    ms: ms,
+    sales: sales,
+    profit: profit,
+    profitRate: rate,
+    notes: notes,
+    savedAt: new Date().toISOString(),
+  };
+
+  if (existing >= 0) records[existing] = record;
+  else records.unshift(record);
+
+  saveData();
+  renderHistory();
+  updateStats();
+  renderWeekly();
+  showToast('已保存 ✓');
+}
+
+// --- Stats ---
+function updateStats() {
+  updateTodayStatHours();
+  updateProgress();
+
+  // Week days worked
+  const now = new Date();
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - now.getDay());
+  weekStart.setHours(0,0,0,0);
+
+  let days = 0, weekProfit = 0;
+  records.forEach(r => {
+    const d = new Date(r.date);
+    if (d >= weekStart) {
+      if (r.ms > 0) days++;
+      weekProfit += (r.profit || 0);
+    }
+  });
+
+  document.getElementById('statDays').textContent = `${days}天`;
+  document.getElementById('statWeekProfit').textContent = `¥${weekProfit.toFixed(0)}`;
+}
+
+// --- Weekly bar chart ---
+function renderWeekly() {
+  const now = new Date();
+  const dayNames = ['日','一','二','三','四','五','六'];
+  const container = document.getElementById('weeklyBar');
+  container.innerHTML = '';
+
+  let maxH = 1;
+  const cols = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(now.getDate() - i);
+    const key = d.toISOString().slice(0,10);
+    const rec = records.find(r => r.date === key);
+    const ms = rec ? rec.ms : (key === todayKey() ? getCurrentMs() : 0);
+    const hours = ms / 3600000;
+    if (hours > maxH) maxH = hours;
+    cols.push({ day: dayNames[d.getDay()], hours, isToday: i === 0 });
+  }
+
+  cols.forEach(col => {
+    const div = document.createElement('div');
+    div.className = 'week-col';
+    const fillH = Math.max((col.hours / Math.max(maxH, GOAL_HOURS)) * 52, col.hours > 0 ? 4 : 2);
+    div.innerHTML = `
+      <div class="week-bar-fill${col.isToday ? ' today' : ''}" style="height:${fillH}px"></div>
+      <div class="week-day">${col.day}</div>
+    `;
+    container.appendChild(div);
+  });
+}
+
+// --- History ---
+function renderHistory() {
+  const list = document.getElementById('historyList');
+  if (records.length === 0) {
+    list.innerHTML = '<div class="empty">暂无记录</div>';
+    return;
+  }
+  list.innerHTML = '';
+  records.slice(0, 14).forEach(r => {
+    const d = new Date(r.date);
+    const dateStr = `${d.getMonth()+1}月${d.getDate()}日`;
+    const totalMin = Math.floor(r.ms / 60000);
+    const h = Math.floor(totalMin / 60);
+    const m = totalMin % 60;
+    const hitGoal = r.ms >= GOAL_HOURS * 3600000;
+
+    const div = document.createElement('div');
+    div.className = 'history-item';
+    div.innerHTML = `
+      <div class="history-item-header">
+        <div class="history-date">${dateStr}</div>
+        <div class="history-badges">
+          ${r.ms > 0 ? `<span class="badge badge-time">${h}h ${m}m</span>` : ''}
+          ${r.profit > 0 ? `<span class="badge badge-profit">¥${r.profit.toFixed(0)}</span>` : ''}
+          ${r.ms > 0 ? `<span class="badge ${hitGoal ? 'badge-hit' : 'badge-miss'}">${hitGoal ? '达标' : '未达标'}</span>` : ''}
+        </div>
+      </div>
+      ${r.sales > 0 ? `<div class="history-metrics">
+        <div class="history-metric">销售额 <b>¥${r.sales.toFixed(0)}</b></div>
+        <div class="history-metric">利润率 <b>${r.profitRate}%</b></div>
+      </div>` : ''}
+      ${r.notes ? `<div class="history-notes">${r.notes}</div>` : ''}
+    `;
+    list.appendChild(div);
+  });
+}
+
+// --- Toast ---
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+init();
+</script>
+</body>
+</html>
